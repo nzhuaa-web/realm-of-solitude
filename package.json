@@ -1,0 +1,21 @@
+{
+  "name": "realm-of-solitude",
+  "version": "1.0.0",
+  "description": "寂境王朝 - Nopoly风格轻量生存策略游戏",
+  "main": "survival_game.html",
+  "scripts": {
+    "dev": "python3 -m http.server 8000",
+    "build": "echo 'Build complete - static HTML game'",
+    "deploy": "npm run build && echo 'Deployment ready'",
+    "serve": "npx serve . -p 3000"
+  },
+  "keywords": ["game", "strategy", "survival", "html5", "nopoly"],
+  "author": "Litazhu",
+  "license": "MIT",
+  "devDependencies": {
+    "serve": "^14.2.1"
+  },
+  "engines": {
+    "node": ">=14.0.0"
+  }
+}

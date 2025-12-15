@@ -1,0 +1,24 @@
+{
+  "version": 2,
+  "name": "realm-of-solitude",
+  "builds": [
+    {
+      "src": "survival_game.html",
+      "use": "@vercel/static"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/(.*)",
+      "dest": "/survival_game.html"
+    }
+  ],
+  "functions": {},
+  "env": {
+    "GAME_NAME": "寂境王朝 / Realm of Solitude",
+    "GAME_VERSION": "1.0.0",
+    "GAME_TYPE": "HTML5 Strategy Survival"
+  },
+  "buildCommand": "echo 'Static HTML game deployment'",
+  "outputDirectory": "."
+}

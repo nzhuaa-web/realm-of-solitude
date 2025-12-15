@@ -1,0 +1,2346 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>寂境王朝 - Realm of Solitude</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            color: #e2e8f0;
+            min-height: 100vh;
+            overflow: hidden;
+        }
+
+        .game-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            font-size: 3em;
+            color: #60a5fa;
+            text-shadow: 0 0 20px rgba(96, 165, 250, 0.5);
+            margin-bottom: 10px;
+            letter-spacing: 2px;
+        }
+
+        .header .subtitle {
+            font-size: 1.2em;
+            color: #94a3b8;
+            font-style: italic;
+        }
+
+        .game-area {
+            display: grid;
+            grid-template-columns: 280px 1fr 300px;
+            gap: 20px;
+            height: 600px;
+        }
+
+        /* Nopoly风格地图 */
+        .game-map {
+            background: rgba(30, 41, 59, 0.8);
+            border-radius: 15px;
+            position: relative;
+            overflow: hidden;
+            border: 2px solid #334155;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        }
+
+        .tile {
+            position: absolute;
+            width: 50px;
+            height: 50px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: all 0.3s ease;
+            transform-style: preserve-3d;
+        }
+
+        /* Nopoly风格地块 */
+        .tile.grass {
+            background: #10b981;
+            clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+        }
+
+        .tile.forest {
+            background: #065f46;
+            clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+        }
+
+        .tile.water {
+            background: #0ea5e9;
+            clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+        }
+
+        .tile.mountain {
+            background: #6b7280;
+            clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+        }
+
+        /* 英雄样式 */
+        .hero {
+            position: absolute;
+            width: 35px;
+            height: 35px;
+            background: #f59e0b;
+            border-radius: 50%;
+            z-index: 20;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            color: white;
+            box-shadow: 0 0 15px rgba(245, 158, 11, 0.5);
+            animation: heroPulse 2s ease-in-out infinite;
+            cursor: pointer;
+        }
+
+        @keyframes heroPulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+
+        /* 王令面板 */
+        .decree-panel {
+            background: rgba(15, 23, 42, 0.9);
+            border-radius: 10px;
+            padding: 15px;
+            backdrop-filter: blur(10px);
+            border: 1px solid #334155;
+        }
+
+        .decree-title {
+            font-weight: bold;
+            color: #f59e0b;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+
+        .decree-option {
+            background: rgba(51, 65, 85, 0.6);
+            border: 1px solid #475569;
+            border-radius: 5px;
+            padding: 10px;
+            margin-bottom: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .decree-option:hover {
+            background: rgba(96, 165, 250, 0.3);
+            border-color: #60a5fa;
+        }
+
+        .decree-option.selected {
+            background: rgba(245, 158, 11, 0.3);
+            border-color: #f59e0b;
+        }
+
+        /* 敌人样式 */
+        .enemy {
+            position: absolute;
+            width: 25px;
+            height: 25px;
+            background: #ef4444;
+            border-radius: 50%;
+            z-index: 15;
+            animation: enemyFloat 3s ease-in-out infinite;
+        }
+
+        .enemy.elite {
+            background: #dc2626;
+            width: 30px;
+            height: 30px;
+            box-shadow: 0 0 10px rgba(220, 38, 38, 0.5);
+        }
+
+        .enemy.boss {
+            background: #7c2d12;
+            width: 40px;
+            height: 40px;
+            box-shadow: 0 0 20px rgba(124, 45, 18, 0.7);
+        }
+
+        @keyframes enemyFloat {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-3px); }
+        }
+
+        /* 技能按钮 */
+        .skill-bar {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .skill-btn {
+            padding: 8px 12px;
+            background: #7c3aed;
+            border: none;
+            border-radius: 5px;
+            color: white;
+            cursor: pointer;
+            transition: background 0.3s ease;
+            font-size: 0.9em;
+        }
+
+        .skill-btn:hover:not(:disabled) {
+            background: #6d28d9;
+        }
+
+        .skill-btn:disabled {
+            background: #475569;
+            cursor: not-allowed;
+        }
+
+        .skill-btn.cooldown {
+            background: #374151;
+            color: #9ca3af;
+        }
+
+        /* 昼夜视觉效果 - Nopoly风格 */
+        .day-time {
+            background: linear-gradient(135deg, #0ea5e9 0%, #38bdf8 100%);
+        }
+
+        .night-time {
+            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+            filter: brightness(0.7);
+        }
+
+        .void-effect {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle at 50% 50%, rgba(139, 92, 246, 0.1) 0%, transparent 70%);
+            animation: voidPulse 4s ease-in-out infinite;
+            pointer-events: none;
+        }
+
+        @keyframes voidPulse {
+            0%, 100% { opacity: 0.3; }
+            50% { opacity: 0.6; }
+        }
+
+        /* === Nopoly风格UI系统 === */
+
+        /* 顶部资源栏 - 灵光UI专案设计 */
+        .resource-bar {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 20px;
+            padding: 10px 20px;
+            background: rgba(15, 23, 42, 0.9);
+            border-radius: 10px;
+            border: 2px solid #334155;
+            backdrop-filter: blur(10px);
+            margin-bottom: 20px;
+        }
+
+        .resource-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 1.1em;
+            font-weight: 600;
+        }
+
+        .resource-item.aura {
+            color: #fbbf24; /* 灵光金色 */
+            font-weight: 700;
+            position: relative;
+        }
+
+        .aura-icon {
+            font-size: 1.3em;
+            animation: auraPulse 2s ease-in-out infinite;
+        }
+
+        @keyframes auraPulse {
+            0%, 100% { 
+                transform: scale(1);
+                text-shadow: 0 0 5px rgba(251, 191, 36, 0.5);
+            }
+            50% { 
+                transform: scale(1.1);
+                text-shadow: 0 0 15px rgba(251, 191, 36, 0.8);
+            }
+        }
+
+        .aura-low {
+            animation: auraWarning 0.5s ease-in-out 3;
+            color: #ef4444 !important;
+        }
+
+        @keyframes auraWarning {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.2); }
+        }
+
+        /* 夜晚进度条 */
+        .night-progress {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-left: auto;
+        }
+
+        .wave-indicator {
+            display: flex;
+            gap: 3px;
+        }
+
+        .wave-block {
+            width: 8px;
+            height: 15px;
+            background: #475569;
+            border-radius: 2px;
+            transition: all 0.3s ease;
+        }
+
+        .wave-block.active {
+            background: #60a5fa;
+            box-shadow: 0 0 5px rgba(96, 165, 250, 0.5);
+        }
+
+        .wave-block.completed {
+            background: #10b981;
+        }
+
+        /* 英雄状态面板 - 左下角 */
+        .hero-panel {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            background: rgba(15, 23, 42, 0.9);
+            border-radius: 10px;
+            padding: 15px;
+            border: 2px solid #334155;
+            backdrop-filter: blur(10px);
+            min-width: 200px;
+            z-index: 100;
+        }
+
+        .hero-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+
+        .hero-avatar {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, #f59e0b, #fbbf24);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5em;
+            border: 2px solid #d97706;
+        }
+
+        .hero-info {
+            flex: 1;
+        }
+
+        .hero-name {
+            font-weight: 600;
+            color: #f59e0b;
+        }
+
+        .health-bar {
+            width: 100%;
+            height: 8px;
+            background: #374151;
+            border-radius: 4px;
+            overflow: hidden;
+            margin: 5px 0;
+        }
+
+        .health-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #10b981, #34d399);
+            border-radius: 4px;
+            transition: width 0.3s ease;
+        }
+
+        .health-fill.low {
+            background: linear-gradient(90deg, #ef4444, #f87171);
+        }
+
+        .shield-indicator {
+            display: flex;
+            gap: 5px;
+            margin-top: 5px;
+        }
+
+        .shield-icon {
+            color: #60a5fa;
+            font-size: 1.1em;
+        }
+
+        /* 技能栏 - 右下角 */
+        .skill-panel {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            display: flex;
+            gap: 10px;
+            z-index: 100;
+        }
+
+        .skill-btn {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            border: 2px solid #475569;
+            background: rgba(15, 23, 42, 0.9);
+            color: white;
+            font-size: 1.2em;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+            position: relative;
+            backdrop-filter: blur(10px);
+        }
+
+        .skill-btn:hover:not(:disabled) {
+            border-color: #60a5fa;
+            transform: scale(1.05);
+        }
+
+        .skill-btn:active {
+            transform: scale(0.95);
+        }
+
+        .skill-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .skill-btn.ultimate {
+            width: 80px;
+            height: 80px;
+            border-color: #f59e0b;
+            background: rgba(245, 158, 11, 0.1);
+        }
+
+        .skill-btn.ultimate.ready {
+            animation: ultimateGlow 2s ease-in-out infinite;
+            border-color: #fbbf24;
+            background: rgba(245, 158, 11, 0.3);
+        }
+
+        @keyframes ultimateGlow {
+            0%, 100% { 
+                box-shadow: 0 0 10px rgba(245, 158, 11, 0.5);
+            }
+            50% { 
+                box-shadow: 0 0 20px rgba(245, 158, 11, 0.8);
+            }
+        }
+
+        /* 冷却效果 */
+        .cooldown-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.8em;
+            color: white;
+        }
+
+        .cooldown-ring {
+            position: absolute;
+            top: -2px;
+            left: -2px;
+            width: calc(100% + 4px);
+            height: calc(100% + 4px);
+            border-radius: 50%;
+            border: 2px solid transparent;
+            border-top-color: #60a5fa;
+            animation: cooldownSpin 1s linear infinite;
+        }
+
+        @keyframes cooldownSpin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* 灵光消耗提示 */
+        .aura-cost {
+            position: absolute;
+            top: -25px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: #fbbf24;
+            font-size: 0.9em;
+            font-weight: 600;
+            white-space: nowrap;
+            animation: auraCostFloat 1s ease-out forwards;
+        }
+
+        @keyframes auraCostFloat {
+            0% { 
+                opacity: 1;
+                transform: translateX(-50%) translateY(0);
+            }
+            100% { 
+                opacity: 0;
+                transform: translateX(-50%) translateY(-20px);
+            }
+        }
+
+        /* 敌人预警系统 */
+        .enemy-alert {
+            position: absolute;
+            width: 40px;
+            height: 40px;
+            border: 2px solid #ef4444;
+            border-radius: 50%;
+            animation: alertPulse 1s ease-in-out infinite;
+            z-index: 90;
+            pointer-events: none;
+        }
+
+        @keyframes alertPulse {
+            0%, 100% { 
+                transform: scale(1);
+                opacity: 0.7;
+            }
+            50% { 
+                transform: scale(1.2);
+                opacity: 1;
+            }
+        }
+
+        .enemy-arrow {
+            position: absolute;
+            font-size: 1.5em;
+            color: #ef4444;
+            animation: arrowBlink 0.5s ease-in-out infinite;
+            z-index: 90;
+            pointer-events: none;
+        }
+
+        @keyframes arrowBlink {
+            0%, 100% { opacity: 0.3; }
+            50% { opacity: 1; }
+        }
+
+        /* 建筑受攻击提示 */
+        .building-attack {
+            position: absolute;
+            animation: buildingShake 0.3s ease-in-out;
+            border: 2px solid #ef4444 !important;
+        }
+
+        @keyframes buildingShake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-2px); }
+            75% { transform: translateX(2px); }
+        }
+
+        .attack-icon {
+            position: absolute;
+            top: -10px;
+            right: -10px;
+            font-size: 1.2em;
+            color: #ef4444;
+            animation: iconPulse 0.5s ease-in-out infinite;
+        }
+
+        @keyframes iconPulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.2); }
+        }
+
+        /* 响应式调整 */
+        @media (max-width: 768px) {
+            .hero-panel {
+                bottom: 10px;
+                left: 10px;
+                padding: 10px;
+                min-width: 160px;
+            }
+            
+            .skill-panel {
+                bottom: 10px;
+                right: 10px;
+            }
+            
+            .skill-btn {
+                width: 50px;
+                height: 50px;
+            }
+            
+            .skill-btn.ultimate {
+                width: 65px;
+                height: 65px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <div class="header">
+            <h1>寂境王朝</h1>
+            <div class="subtitle">Realm of Solitude - 在虚空边缘重建希望</div>
+        </div>
+
+        <div class="day-counter">
+            第 <span id="day">1</span> 天 | 
+            <span id="timeOfDay">白天</span> | 
+            关卡: <span id="level">1</span>
+        </div>
+
+        <div class="game-area">
+            <div class="legend-panel">
+                <h3>王令选择</h3>
+                <div class="decree-panel" id="decreePanel">
+                    <div class="decree-title">选择3个王令开始游戏</div>
+                    <!-- 王令选项将通过JavaScript动态生成 -->
+                </div>
+
+                <div class="goal-panel">
+                    <div class="goal-title">游戏目标</div>
+                    <div class="goal-item">✓ 生存10个昼夜循环</div>
+                    <div class="goal-item">✓ 抵御虚空巨潮</div>
+                    <div class="goal-item">✓ 建立稳定防线</div>
+                    <div class="goal-item">✓ 升级英雄能力</div>
+                </div>
+
+                <div class="skill-bar" id="skillBar">
+                    <!-- 技能按钮将通过JavaScript动态生成 -->
+                </div>
+            </div>
+
+            <div class="game-map" id="gameMap">
+                <div class="void-effect" id="voidEffect"></div>
+                <!-- 地图将通过JavaScript动态生成 -->
+            </div>
+
+            <div class="stats-panel">
+                <h3>孤王状态</h3>
+                <div class="resource">
+                    <span class="resource-name">灵光能量</span>
+                    <span class="resource-value" id="aura">100</span>
+                </div>
+                <div class="resource">
+                    <span class="resource-name">金币</span>
+                    <span class="resource-value" id="gold">50</span>
+                </div>
+                <div class="resource">
+                    <span class="resource-name">木材</span>
+                    <span class="resource-value" id="wood">25</span>
+                </div>
+                <div class="resource">
+                    <span class="resource-name">人口</span>
+                    <span class="resource-value" id="population">5</span>
+                </div>
+                <div class="resource">
+                    <span class="resource-name">英雄等级</span>
+                    <span class="resource-value" id="heroLevel">1</span>
+                </div>
+
+                <div class="actions-panel">
+                    <button class="action-btn" onclick="gatherAura()">采集灵光</button>
+                    <button class="action-btn" onclick="buildStructure('farm')">建造农场</button>
+                    <button class="action-btn" onclick="buildStructure('tower')">建造箭塔</button>
+                    <button class="action-btn" onclick="buildStructure('barracks')">建造兵营</button>
+                    <button class="action-btn" onclick="upgradeHero()">升级英雄</button>
+                    <button class="action-btn" onclick="nextPhase()">进入下一阶段</button>
+                    <button class="action-btn" onclick="restartGame()" style="background: #f59e0b;">重新开始</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="event-log" id="eventLog">
+            <div class="event neutral">虚空风暴已平息，开始重建你的王朝...</div>
+        </div>
+    </div>
+
+    <script>
+        // 游戏状态 - 按照策划案重构
+        let gameState = {
+            level: 1,
+            day: 1,
+            phase: 'day', // day or night
+            resources: {
+                aura: 100,    // 灵光能量
+                gold: 50,     // 金币
+                wood: 25,     // 木材
+                population: 5 // 人口
+            },
+            hero: {
+                level: 1,
+                health: 100,
+                skills: ['basicAttack', 'defensiveStance'],
+                experience: 0
+            },
+            decrees: [],      // 选择的王令
+            buildings: [],
+            enemies: [],
+            events: []
+        };
+
+        // 王令系统 - 类似卡组选择
+        const availableDecrees = [
+            {
+                id: 'economicFocus',
+                name: '经济优先',
+                description: '所有农场收益+30%',
+                effect: () => gameState.resources.aura *= 1.3
+            },
+            {
+                id: 'knightHonor', 
+                name: '骑士荣耀',
+                description: '骑兵获得冲锋击退效果',
+                effect: () => console.log('骑士荣耀激活')
+            },
+            {
+                id: 'steelDefense',
+                name: '钢铁防线', 
+                description: '城墙耐久+50%',
+                effect: () => console.log('钢铁防线激活')
+            },
+            {
+                id: 'nightWalker',
+                name: '夜行者',
+                description: '英雄夜战获得额外伤害',
+                effect: () => console.log('夜行者激活')
+            },
+            {
+                id: 'auraProtection',
+                name: '灵光护主',
+                description: '死亡一次免死',
+                effect: () => console.log('灵光护主激活')
+            }
+        ];
+
+        // 敌人类型 - 按照策划案设计
+        const enemyTypes = {
+            voidBeast: {
+                name: '虚空小兽',
+                health: 30,
+                damage: 5,
+                speed: 1,
+                description: '数量多、破坏墙快'
+            },
+            voidCharger: {
+                name: '虚空冲锋兽', 
+                health: 50,
+                damage: 10,
+                speed: 2,
+                description: '高速、直线冲破防线'
+            },
+            corrosionCrab: {
+                name: '腐蚀蟹',
+                health: 40,
+                damage: 8,
+                speed: 0.8,
+                description: '对建筑有额外伤害'
+            },
+            nightArcher: {
+                name: '夜影弓手',
+                health: 35,
+                damage: 12,
+                speed: 1.2,
+                description: '远程威胁英雄'
+            },
+            voidColossus: {
+                name: '虚空巨灵',
+                health: 200,
+                damage: 25,
+                speed: 0.5,
+                description: 'Boss级敌人，需合力击败'
+            }
+        };
+
+        // 建筑系统
+        const buildingTypes = {
+            farm: {
+                name: '农场',
+                cost: { wood: 10, gold: 5 },
+                production: { aura: 5 },
+                description: '稳定产出灵光能量'
+            },
+            tower: {
+                name: '箭塔', 
+                cost: { wood: 15, gold: 10 },
+                defense: 20,
+                description: '远程攻击敌人'
+            },
+            barracks: {
+                name: '兵营',
+                cost: { wood: 20, gold: 15 },
+                population: 3,
+                description: '训练基础士兵'
+            },
+            wall: {
+                name: '城墙',
+                cost: { wood: 5 },
+                defense: 30,
+                description: '阻挡敌人前进'
+            }
+        };
+
+        // 英雄技能
+        const heroSkills = {
+            basicAttack: {
+                name: '基础攻击',
+                cost: 0,
+                cooldown: 1,
+                effect: '对单个敌人造成伤害'
+            },
+            defensiveStance: {
+                name: '防御姿态',
+                cost: 10,
+                cooldown: 3,
+                effect: '提升防御力3回合'
+            },
+            auraStrike: {
+                name: '灵光打击',
+                cost: 25,
+                cooldown: 5,
+                effect: '范围攻击，消耗灵光能量'
+            }
+        };
+
+        // 初始化王令选择
+        function initDecreeSelection() {
+            const decreePanel = document.getElementById('decreePanel');
+            decreePanel.innerHTML = '<div class="decree-title">选择3个王令开始游戏</div>';
+            
+            availableDecrees.forEach(decree => {
+                const option = document.createElement('div');
+                option.className = 'decree-option';
+                option.setAttribute('data-decree-id', decree.id);
+                option.innerHTML = `
+                    <strong>${decree.name}</strong><br>
+                    <small>${decree.description}</small>
+                `;
+                option.onclick = () => selectDecree(decree);
+                decreePanel.appendChild(option);
+            });
+            
+            // 添加开始游戏按钮
+            const startButton = document.createElement('button');
+            startButton.className = 'action-btn';
+            startButton.textContent = '开始游戏';
+            startButton.style.marginTop = '10px';
+            startButton.onclick = startGame;
+            decreePanel.appendChild(startButton);
+        }
+
+        // 选择王令
+        function selectDecree(decree) {
+            if (gameState.decrees.length >= 3) {
+                addEvent('已选择3个王令，请点击"开始游戏"按钮', 'neutral');
+                return;
+            }
+            
+            if (!gameState.decrees.includes(decree.id)) {
+                gameState.decrees.push(decree.id);
+                decree.effect();
+                addEvent(`选择了王令: ${decree.name} (${gameState.decrees.length}/3)`, 'positive');
+                
+                // 更新UI显示已选择
+                const options = document.querySelectorAll('.decree-option');
+                options.forEach(opt => {
+                    if (opt.getAttribute('data-decree-id') === decree.id) {
+                        opt.classList.add('selected');
+                    }
+                });
+                updateUI();
+            } else {
+                addEvent('已经选择了这个王令', 'neutral');
+            }
+        }
+
+        // 开始游戏
+        function startGame() {
+            if (gameState.decrees.length < 3) {
+                addEvent(`请选择3个王令才能开始游戏 (当前: ${gameState.decrees.length}/3)`, 'negative');
+                return;
+            }
+            
+            addEvent('游戏开始！使用你的王令策略建立防线...', 'positive');
+            
+            // 启用所有游戏功能
+            document.querySelectorAll('.action-btn').forEach(btn => {
+                btn.disabled = false;
+            });
+            
+            // 隐藏王令选择面板
+            document.getElementById('decreePanel').style.display = 'none';
+        }
+
+        // 生成Nopoly风格地图
+        function generateNopolyMap() {
+            const mapElement = document.getElementById('gameMap');
+            mapElement.innerHTML = '';
+            
+            const mapConfig = {
+                width: 12,
+                height: 8,
+                tileSize: 50
+            };
+
+            // 添加虚空效果
+            const voidEffect = document.createElement('div');
+            voidEffect.className = 'void-effect';
+            voidEffect.id = 'voidEffect';
+            mapElement.appendChild(voidEffect);
+
+            // 生成六边形网格
+            for (let y = 0; y < mapConfig.height; y++) {
+                for (let x = 0; x < mapConfig.width; x++) {
+                    const tile = document.createElement('div');
+                    tile.className = 'tile';
+                    
+                    // 随机地块类型
+                    const types = ['grass', 'forest', 'water', 'mountain'];
+                    const type = types[Math.floor(Math.random() * types.length)];
+                    tile.classList.add(type);
+                    
+                    // 六边形布局计算
+                    const hexX = x * mapConfig.tileSize * 0.866; // cos(30°)
+                    const hexY = y * mapConfig.tileSize + (x % 2) * mapConfig.tileSize / 2;
+                    
+                    tile.style.position = 'absolute';
+                    tile.style.left = hexX + 'px';
+                    tile.style.top = hexY + 'px';
+                    tile.style.width = mapConfig.tileSize + 'px';
+                    tile.style.height = mapConfig.tileSize + 'px';
+                    tile.style.cursor = 'pointer';
+                    tile.style.zIndex = '5';
+                    
+                    tile.addEventListener('click', () => onTileClick(x, y, type));
+                    mapElement.appendChild(tile);
+                }
+            }
+
+            // 放置英雄
+            placeHero();
+        }
+
+        // 地块点击事件
+        function onTileClick(x, y, type) {
+            if (gameState.decrees.length < 3) {
+                addEvent('请先选择3个王令开始游戏', 'negative');
+                return;
+            }
+            
+            if (gameState.phase === 'day') {
+                addEvent(`选择了${getTileName(type)}地块 (${x}, ${y}) - 可以在此建造建筑`, 'neutral');
+            } else {
+                addEvent(`夜晚无法建造，请等待天亮`, 'negative');
+            }
+        }
+
+        // 获取地块名称
+        function getTileName(type) {
+            const names = {
+                'grass': '草地',
+                'forest': '森林', 
+                'water': '水域',
+                'mountain': '山脉'
+            };
+            return names[type] || '未知地块';
+        }
+
+        // 采集灵光能量
+        function gatherAura() {
+            if (gameState.decrees.length < 3) {
+                addEvent('请先选择3个王令开始游戏', 'negative');
+                return;
+            }
+            
+            if (gameState.phase === 'day') {
+                const gathered = Math.floor(Math.random() * 15) + 10;
+                gameState.resources.aura += gathered;
+                addEvent(`采集到 ${gathered} 点灵光能量`, 'positive');
+                updateUI();
+            } else {
+                addEvent('只能在白天采集资源', 'negative');
+            }
+        }
+
+        // 检查是否能够支付
+        function canAfford(cost) {
+            return Object.keys(cost).every(resource => 
+                gameState.resources[resource] >= cost[resource]
+            );
+        }
+
+        // 进入下一阶段（白天/黑夜切换）
+        function nextPhase() {
+            if (gameState.decrees.length < 3) {
+                addEvent('请先选择3个王令开始游戏', 'negative');
+                return;
+            }
+            
+            if (gameState.phase === 'day') {
+                // 切换到夜晚
+                gameState.phase = 'night';
+                document.getElementById('timeOfDay').textContent = '夜晚';
+                document.body.classList.add('night-time');
+                document.body.classList.remove('day-time');
+                
+                addEvent('夜幕降临，虚空生物开始活动...', 'negative');
+                startNightPhase();
+            } else {
+                // 切换到白天
+                gameState.phase = 'day';
+                gameState.day++;
+                document.getElementById('timeOfDay').textContent = '白天';
+                document.getElementById('day').textContent = gameState.day;
+                document.body.classList.add('day-time');
+                document.body.classList.remove('night-time');
+                
+                // 启用建造按钮
+                document.querySelectorAll('.action-btn').forEach(btn => {
+                    btn.disabled = false;
+                });
+                
+                // 清除夜晚的敌人
+                gameState.enemies.forEach(enemy => enemy.element.remove());
+                gameState.enemies = [];
+                
+                addEvent(`第${gameState.day}天开始，继续建设你的王朝`, 'positive');
+                
+                // 检查是否完成关卡
+                if (gameState.day > 10) {
+                    completeLevel();
+                }
+            }
+            updateUI();
+        }
+
+        // 放置英雄
+        function placeHero() {
+            const mapElement = document.getElementById('gameMap');
+            const hero = document.createElement('div');
+            hero.className = 'hero';
+            hero.innerHTML = '👑';
+            hero.style.left = '300px';
+            hero.style.top = '200px';
+            hero.onclick = () => showHeroInfo();
+            mapElement.appendChild(hero);
+        }
+
+        // 显示英雄信息
+        function showHeroInfo() {
+            if (gameState.decrees.length < 3) {
+                addEvent('请先选择3个王令开始游戏', 'negative');
+                return;
+            }
+            
+            const heroInfo = `
+孤王状态:
+等级: ${gameState.hero.level}
+生命值: ${gameState.hero.health}
+经验值: ${gameState.hero.experience}
+技能: ${gameState.hero.skills.join(', ')}
+王令效果: ${gameState.decrees.join(', ')}
+            `;
+            
+            addEvent(heroInfo, 'positive');
+            
+            // 显示技能面板
+            showSkillPanel();
+        }
+
+        // 显示技能面板
+        function showSkillPanel() {
+            const skillBar = document.getElementById('skillBar');
+            skillBar.innerHTML = '<div class="decree-title">英雄技能</div>';
+            
+            Object.keys(heroSkills).forEach(skillKey => {
+                const skill = heroSkills[skillKey];
+                const skillBtn = document.createElement('button');
+                skillBtn.className = 'skill-btn';
+                skillBtn.textContent = `${skill.name} (消耗:${skill.cost})`;
+                skillBtn.onclick = () => useSkill(skillKey);
+                
+                // 检查是否可以使用技能
+                if (gameState.resources.aura < skill.cost) {
+                    skillBtn.disabled = true;
+                    skillBtn.title = `需要${skill.cost}点灵光能量`;
+                }
+                
+                skillBar.appendChild(skillBtn);
+            });
+        }
+
+        // 使用技能 - 增强版Nopoly风格
+        function useSkill(skillKey) {
+            const skill = heroSkills[skillKey];
+            const skillBtn = document.querySelector(`.skill-btn[data-skill="${skillKey}"]`);
+            
+            if (!skillBtn) return;
+            
+            // 检查灵光是否足够
+            if (gameState.resources.aura < skill.cost) {
+                addEvent(`灵光能量不足！需要${skill.cost}点能量使用${skill.name}`, 'negative');
+                
+                // 灵光不足提示动画
+                skillBtn.classList.add('aura-low');
+                setTimeout(() => {
+                    skillBtn.classList.remove('aura-low');
+                }, 500);
+                return;
+            }
+            
+            // 灵光消耗
+            gameState.resources.aura -= skill.cost;
+            
+            // 显示灵光消耗动画
+            showAuraCostAnimation(skill.cost, skillBtn);
+            
+            // 技能冷却效果
+            startSkillCooldown(skillKey, skillBtn);
+            
+            // 执行技能效果
+            let skillEffect = '';
+            
+            switch(skillKey) {
+                case 'basicAttack':
+                    if (gameState.enemies.length > 0) {
+                        const randomEnemy = gameState.enemies[Math.floor(Math.random() * gameState.enemies.length)];
+                        skillEffect = `使用${skill.name}攻击了${enemyTypes[randomEnemy.type]?.name || '敌人'}！`;
+                        
+                        // 敌人受击效果
+                        showEnemyHitEffect(randomEnemy.element);
+                        
+                        // 减少敌人生命值
+                        randomEnemy.health -= 15;
+                        if (randomEnemy.health <= 0) {
+                            randomEnemy.element.remove();
+                            gameState.enemies = gameState.enemies.filter(e => e !== randomEnemy);
+                            skillEffect += ' 敌人被击败！';
+                        }
+                    } else {
+                        skillEffect = `使用${skill.name}，但没有发现敌人`;
+                    }
+                    break;
+                    
+                case 'defensiveStance':
+                    skillEffect = `使用${skill.name}，英雄防御力提升！`;
+                    gameState.hero.health += 20;
+                    
+                    // 防御特效
+                    showDefenseEffect();
+                    break;
+                    
+                case 'auraStrike':
+                    if (gameState.enemies.length > 0) {
+                        skillEffect = `使用${skill.name}，对多个敌人造成范围伤害！`;
+                        
+                        // 范围攻击特效
+                        showAuraStrikeEffect();
+                        
+                        // 移除一些敌人
+                        const enemiesToRemove = Math.min(3, gameState.enemies.length);
+                        for (let i = 0; i < enemiesToRemove; i++) {
+                            if (gameState.enemies[i]) {
+                                showEnemyHitEffect(gameState.enemies[i].element);
+                                gameState.enemies[i].element.remove();
+                            }
+                        }
+                        gameState.enemies.splice(0, enemiesToRemove);
+                    } else {
+                        skillEffect = `使用${skill.name}，但没有发现敌人`;
+                    }
+                    break;
+            }
+            
+            addEvent(skillEffect, 'positive');
+            updateUI();
+        }
+
+        // 技能冷却系统
+        function startSkillCooldown(skillKey, skillBtn) {
+            const skill = heroSkills[skillKey];
+            
+            // 禁用按钮
+            skillBtn.disabled = true;
+            
+            // 添加冷却覆盖层
+            const cooldownOverlay = document.createElement('div');
+            cooldownOverlay.className = 'cooldown-overlay';
+            cooldownOverlay.textContent = skill.cooldown + 's';
+            
+            const cooldownRing = document.createElement('div');
+            cooldownRing.className = 'cooldown-ring';
+            
+            skillBtn.appendChild(cooldownOverlay);
+            skillBtn.appendChild(cooldownRing);
+            
+            // 冷却计时器
+            let remainingTime = skill.cooldown;
+            const cooldownInterval = setInterval(() => {
+                remainingTime--;
+                cooldownOverlay.textContent = remainingTime + 's';
+                
+                if (remainingTime <= 0) {
+                    clearInterval(cooldownInterval);
+                    cooldownOverlay.remove();
+                    cooldownRing.remove();
+                    skillBtn.disabled = false;
+                }
+            }, 1000);
+        }
+
+        // 敌人受击效果
+        function showEnemyHitEffect(enemyElement) {
+            enemyElement.style.animation = 'none';
+            setTimeout(() => {
+                enemyElement.style.animation = 'enemyFloat 3s ease-in-out infinite';
+            }, 10);
+            
+            enemyElement.style.border = '2px solid #f59e0b';
+            enemyElement.style.boxShadow = '0 0 15px rgba(245, 158, 11, 0.8)';
+            
+            setTimeout(() => {
+                enemyElement.style.border = '';
+                enemyElement.style.boxShadow = '';
+            }, 300);
+        }
+
+        // 防御特效
+        function showDefenseEffect() {
+            const heroPanel = document.querySelector('.hero-panel');
+            if (heroPanel) {
+                heroPanel.style.borderColor = '#60a5fa';
+                heroPanel.style.boxShadow = '0 0 20px rgba(96, 165, 250, 0.5)';
+                
+                setTimeout(() => {
+                    heroPanel.style.borderColor = '';
+                    heroPanel.style.boxShadow = '';
+                }, 1000);
+            }
+        }
+
+        // 灵光打击特效
+        function showAuraStrikeEffect() {
+            const mapElement = document.getElementById('gameMap');
+            const strikeEffect = document.createElement('div');
+            strikeEffect.style.position = 'absolute';
+            strikeEffect.style.top = '50%';
+            strikeEffect.style.left = '50%';
+            strikeEffect.style.transform = 'translate(-50%, -50%)';
+            strikeEffect.style.width = '200px';
+            strikeEffect.style.height = '200px';
+            strikeEffect.style.background = 'radial-gradient(circle, rgba(251, 191, 36, 0.3) 0%, transparent 70%)';
+            strikeEffect.style.borderRadius = '50%';
+            strikeEffect.style.animation = 'auraStrikeExpand 0.5s ease-out forwards';
+            strikeEffect.style.zIndex = '25';
+            strikeEffect.style.pointerEvents = 'none';
+            
+            mapElement.appendChild(strikeEffect);
+            
+            setTimeout(() => {
+                strikeEffect.remove();
+            }, 500);
+        }
+
+        // 初始化游戏时添加Nopoly UI
+        function initGame() {
+            initDecreeSelection();
+            generateNopolyMap();
+            initNopolyUI(); // 初始化Nopoly UI系统
+            updateUI();
+            
+            // 设置昼夜视觉效果
+            document.body.classList.add('day-time');
+        }
+
+        // 开始夜晚阶段 - 增强版
+        function startNightPhase() {
+            // 切换到夜晚视觉
+            gameState.phase = 'night';
+            document.getElementById('timeOfDay').textContent = '夜晚';
+            document.body.classList.add('night-time');
+            document.body.classList.remove('day-time');
+            
+            // 生成敌人波次
+            generateEnemyWave();
+            
+            // 禁用建造按钮
+            document.querySelectorAll('.action-btn').forEach(btn => {
+                if (!btn.textContent.includes('下一阶段') && !btn.textContent.includes('重新开始')) {
+                    btn.disabled = true;
+                }
+            });
+            
+            // 开始敌人移动和预警系统
+            startEnemyMovement();
+            startEnemyAlertSystem();
+            
+            addEvent('夜幕降临！虚空生物正在接近...', 'negative');
+            updateUI();
+        }
+
+        // 敌人预警系统
+        function startEnemyAlertSystem() {
+            const alertInterval = setInterval(() => {
+                if (gameState.phase !== 'night') {
+                    clearInterval(alertInterval);
+                    return;
+                }
+                
+                // 为每个敌人显示预警
+                gameState.enemies.forEach(enemy => {
+                    showEnemyAlert(enemy);
+                    showEnemyDirection(enemy);
+                });
+                
+            }, 2000); // 每2秒更新一次预警
+        }
+
+        // 开始敌人移动
+        function startEnemyMovement() {
+            const moveInterval = setInterval(() => {
+                if (gameState.phase !== 'night') {
+                    clearInterval(moveInterval);
+                    return;
+                }
+                
+                gameState.enemies.forEach((enemy, index) => {
+                    // 简单移动逻辑：向地图中心移动
+                    const currentLeft = parseInt(enemy.element.style.left);
+                    const currentTop = parseInt(enemy.element.style.top);
+                    const centerX = 250;
+                    const centerY = 200;
+                    
+                    const dx = centerX - currentLeft;
+                    const dy = centerY - currentTop;
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+                    
+                    if (distance > 10) {
+                        const speed = enemy.speed || 1;
+                        const moveX = (dx / distance) * speed;
+                        const moveY = (dy / distance) * speed;
+                        
+                        enemy.element.style.left = (currentLeft + moveX) + 'px';
+                        enemy.element.style.top = (currentTop + moveY) + 'px';
+                    } else {
+                        // 敌人到达中心，造成伤害
+                        gameState.hero.health -= enemy.damage || 5;
+                        addEvent(`${enemyTypes[enemy.type]?.name || '敌人'}攻击了英雄！生命值-${enemy.damage || 5}`, 'negative');
+                        
+                        // 显示英雄受击效果
+                        showHeroHitEffect();
+                        
+                        // 移除敌人
+                        enemy.element.remove();
+                        gameState.enemies.splice(index, 1);
+                        
+                        // 检查游戏结束
+                        if (gameState.hero.health <= 0) {
+                            gameOver();
+                        }
+                    }
+                });
+                
+                updateUI();
+            }, 100);
+        }
+
+        // 英雄受击效果
+        function showHeroHitEffect() {
+            const heroPanel = document.querySelector('.hero-panel');
+            if (heroPanel) {
+                heroPanel.style.borderColor = '#ef4444';
+                heroPanel.style.boxShadow = '0 0 20px rgba(239, 68, 68, 0.5)';
+                
+                setTimeout(() => {
+                    heroPanel.style.borderColor = '';
+                    heroPanel.style.boxShadow = '';
+                }, 300);
+            }
+        }
+
+        // 添加灵光打击动画样式
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes auraStrikeExpand {
+                0% { 
+                    transform: translate(-50%, -50%) scale(0);
+                    opacity: 1;
+                }
+                100% { 
+                    transform: translate(-50%, -50%) scale(2);
+                    opacity: 0;
+                }
+            }
+            
+            .aura-low {
+                animation: auraWarning 0.5s ease-in-out 3 !important;
+                border-color: #ef4444 !important;
+            }
+        `;
+        document.head.appendChild(style);
+
+        // 升级英雄
+        function upgradeHero() {
+            if (gameState.decrees.length < 3) {
+                addEvent('请先选择3个王令开始游戏', 'negative');
+                return;
+            }
+            
+            if (gameState.resources.aura >= 50) {
+                gameState.resources.aura -= 50;
+                gameState.hero.level++;
+                gameState.hero.health += 20;
+                gameState.hero.experience += 100;
+                
+                // 随机解锁新技能
+                const availableSkills = Object.keys(heroSkills).filter(skill => 
+                    !gameState.hero.skills.includes(skill)
+                );
+                if (availableSkills.length > 0) {
+                    const newSkill = availableSkills[Math.floor(Math.random() * availableSkills.length)];
+                    gameState.hero.skills.push(newSkill);
+                    addEvent(`英雄升级到等级 ${gameState.hero.level}！解锁新技能: ${heroSkills[newSkill].name}`, 'positive');
+                } else {
+                    addEvent(`英雄升级到等级 ${gameState.hero.level}！`, 'positive');
+                }
+                
+                updateUI();
+            } else {
+                addEvent('需要50点灵光能量才能升级英雄', 'negative');
+            }
+        }
+
+        // 地块点击事件
+        function onTileClick(x, y, type) {
+            if (gameState.phase === 'day') {
+                addEvent(`选择了${getTileName(type)}地块 (${x}, ${y})`, 'neutral');
+            }
+        }
+
+        // 获取地块名称
+        function getTileName(type) {
+            const names = {
+                'grass': '草地',
+                'forest': '森林', 
+                'water': '水域',
+                'mountain': '山脉'
+            };
+            return names[type] || '未知地块';
+        }
+
+        // 采集灵光能量
+        function gatherAura() {
+            if (gameState.phase === 'day') {
+                const gathered = Math.floor(Math.random() * 15) + 10;
+                gameState.resources.aura += gathered;
+                addEvent(`采集到 ${gathered} 点灵光能量`, 'positive');
+                updateUI();
+            } else {
+                addEvent('只能在白天采集资源', 'negative');
+            }
+        }
+
+        // 建造建筑
+        function buildStructure(type) {
+            if (gameState.decrees.length < 3) {
+                addEvent('请先选择3个王令开始游戏', 'negative');
+                return;
+            }
+            
+            if (gameState.phase === 'day') {
+                const building = buildingTypes[type];
+                if (!building) {
+                    addEvent(`未知建筑类型: ${type}`, 'negative');
+                    return;
+                }
+                
+                if (canAfford(building.cost)) {
+                    // 扣除资源
+                    Object.keys(building.cost).forEach(resource => {
+                        gameState.resources[resource] -= building.cost[resource];
+                    });
+                    
+                    gameState.buildings.push({
+                        type: type,
+                        ...building,
+                        position: { x: Math.floor(Math.random() * 8), y: Math.floor(Math.random() * 6) }
+                    });
+                    
+                    // 在地图上显示建筑
+                    addBuildingToMap(type);
+                    
+                    addEvent(`建造了${building.name}，消耗${JSON.stringify(building.cost)}`, 'positive');
+                    updateUI();
+                } else {
+                    const missing = Object.keys(building.cost).filter(resource => 
+                        gameState.resources[resource] < building.cost[resource]
+                    );
+                    addEvent(`资源不足，无法建造${building.name}。缺少: ${missing.join(', ')}`, 'negative');
+                }
+            } else {
+                addEvent('只能在白天建造建筑，请等待天亮', 'negative');
+            }
+        }
+
+        // 在地图上添加建筑
+        function addBuildingToMap(type) {
+            const mapElement = document.getElementById('gameMap');
+            const building = document.createElement('div');
+            building.className = 'building';
+            building.classList.add(type);
+            
+            const buildingConfig = {
+                farm: { emoji: '🌾', color: '#10b981' },
+                tower: { emoji: '🏹', color: '#ef4444' },
+                barracks: { emoji: '⚔️', color: '#f59e0b' },
+                wall: { emoji: '🧱', color: '#6b7280' }
+            };
+            
+            const config = buildingConfig[type] || { emoji: '🏠', color: '#94a3b8' };
+            
+            building.innerHTML = config.emoji;
+            building.style.position = 'absolute';
+            building.style.left = Math.random() * 500 + 'px';
+            building.style.top = Math.random() * 400 + 'px';
+            building.style.width = '40px';
+            building.style.height = '40px';
+            building.style.background = config.color;
+            building.style.borderRadius = '5px';
+            building.style.display = 'flex';
+            building.style.alignItems = 'center';
+            building.style.justifyContent = 'center';
+            building.style.fontSize = '20px';
+            building.style.zIndex = '10';
+            building.style.cursor = 'pointer';
+            
+            building.onclick = () => {
+                addEvent(`点击了${buildingTypes[type]?.name || '建筑'}`, 'neutral');
+            };
+            
+            mapElement.appendChild(building);
+        }
+
+        // 检查是否能够支付
+        function canAfford(cost) {
+            return Object.keys(cost).every(resource => 
+                gameState.resources[resource] >= cost[resource]
+            );
+        }
+
+        // 升级英雄
+        function upgradeHero() {
+            if (gameState.resources.aura >= 50) {
+                gameState.resources.aura -= 50;
+                gameState.hero.level++;
+                gameState.hero.health += 20;
+                addEvent(`英雄升级到等级 ${gameState.hero.level}`, 'positive');
+                updateUI();
+            } else {
+                addEvent('需要50点灵光能量才能升级英雄', 'negative');
+            }
+        }
+
+        // 进入下一阶段（白天/黑夜切换）
+        function nextPhase() {
+            if (gameState.phase === 'day') {
+                // 切换到夜晚
+                gameState.phase = 'night';
+                document.getElementById('timeOfDay').textContent = '夜晚';
+                document.body.classList.add('night-time');
+                document.body.classList.remove('day-time');
+                
+                addEvent('夜幕降临，虚空生物开始活动...', 'negative');
+                startNightPhase();
+            } else {
+                // 切换到白天
+                gameState.phase = 'day';
+                gameState.day++;
+                document.getElementById('timeOfDay').textContent = '白天';
+                document.getElementById('day').textContent = gameState.day;
+                document.body.classList.add('day-time');
+                document.body.classList.remove('night-time');
+                
+                addEvent('新的一天开始，继续建设你的王朝', 'positive');
+                
+                // 检查是否完成关卡
+                if (gameState.day > 10) {
+                    completeLevel();
+                }
+            }
+            updateUI();
+        }
+
+        // 开始夜晚阶段
+        function startNightPhase() {
+            // 生成敌人波次
+            generateEnemyWave();
+            
+            // 禁用建造按钮
+            document.querySelectorAll('.action-btn').forEach(btn => {
+                if (!btn.textContent.includes('下一阶段') && !btn.textContent.includes('重新开始')) {
+                    btn.disabled = true;
+                }
+            });
+            
+            // 开始敌人移动
+            startEnemyMovement();
+            
+            addEvent('夜晚开始！虚空生物正在接近...', 'negative');
+        }
+
+        // 生成敌人波次
+        function generateEnemyWave() {
+            const waveSize = Math.min(3 + gameState.day, 8); // 随天数增加
+            
+            for (let i = 0; i < waveSize; i++) {
+                const enemyTypesArray = Object.keys(enemyTypes);
+                const randomType = enemyTypesArray[Math.floor(Math.random() * enemyTypesArray.length)];
+                spawnEnemy(randomType);
+            }
+            
+            // 第10天生成Boss
+            if (gameState.day === 10) {
+                spawnEnemy('voidColossus');
+                addEvent('虚空巨灵出现！最终决战开始', 'negative');
+            }
+        }
+
+        // 生成敌人
+        function spawnEnemy(type) {
+            const mapElement = document.getElementById('gameMap');
+            const enemy = document.createElement('div');
+            enemy.className = 'enemy';
+            enemy.setAttribute('data-enemy-type', type);
+            
+            if (type === 'voidColossus') {
+                enemy.classList.add('boss');
+                enemy.innerHTML = '👹';
+            } else if (Math.random() < 0.2) {
+                enemy.classList.add('elite');
+                enemy.innerHTML = '💀';
+            } else {
+                enemy.innerHTML = '👻';
+            }
+            
+            // 敌人从地图边缘出现
+            const side = Math.floor(Math.random() * 4);
+            let left, top;
+            
+            switch(side) {
+                case 0: // 上边
+                    left = Math.random() * 500;
+                    top = -50;
+                    break;
+                case 1: // 右边
+                    left = 550;
+                    top = Math.random() * 400;
+                    break;
+                case 2: // 下边
+                    left = Math.random() * 500;
+                    top = 450;
+                    break;
+                case 3: // 左边
+                    left = -50;
+                    top = Math.random() * 400;
+                    break;
+            }
+            
+            enemy.style.left = left + 'px';
+            enemy.style.top = top + 'px';
+            enemy.style.position = 'absolute';
+            enemy.style.width = '35px';
+            enemy.style.height = '35px';
+            enemy.style.borderRadius = '50%';
+            enemy.style.display = 'flex';
+            enemy.style.alignItems = 'center';
+            enemy.style.justifyContent = 'center';
+            enemy.style.fontSize = '20px';
+            enemy.style.zIndex = '15';
+            enemy.style.cursor = 'pointer';
+            
+            enemy.onclick = () => {
+                addEvent(`点击了${enemyTypes[type]?.name || '敌人'} (${type})`, 'neutral');
+            };
+            
+            mapElement.appendChild(enemy);
+            gameState.enemies.push({
+                element: enemy,
+                type: type,
+                health: enemyTypes[type].health,
+                ...enemyTypes[type]
+            });
+        }
+
+        // 开始敌人移动
+        function startEnemyMovement() {
+            const moveInterval = setInterval(() => {
+                if (gameState.phase !== 'night') {
+                    clearInterval(moveInterval);
+                    return;
+                }
+                
+                gameState.enemies.forEach((enemy, index) => {
+                    // 简单移动逻辑：向地图中心移动
+                    const currentLeft = parseInt(enemy.element.style.left);
+                    const currentTop = parseInt(enemy.element.style.top);
+                    const centerX = 250;
+                    const centerY = 200;
+                    
+                    const dx = centerX - currentLeft;
+                    const dy = centerY - currentTop;
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+                    
+                    if (distance > 10) {
+                        const speed = enemy.speed || 1;
+                        const moveX = (dx / distance) * speed;
+                        const moveY = (dy / distance) * speed;
+                        
+                        enemy.element.style.left = (currentLeft + moveX) + 'px';
+                        enemy.element.style.top = (currentTop + moveY) + 'px';
+                    } else {
+                        // 敌人到达中心，造成伤害
+                        gameState.hero.health -= enemy.damage || 5;
+                        addEvent(`${enemyTypes[enemy.type]?.name || '敌人'}攻击了英雄！生命值-${enemy.damage || 5}`, 'negative');
+                        
+                        // 移除敌人
+                        enemy.element.remove();
+                        gameState.enemies.splice(index, 1);
+                        
+                        // 检查游戏结束
+                        if (gameState.hero.health <= 0) {
+                            gameOver();
+                        }
+                    }
+                });
+                
+                updateUI();
+            }, 100);
+        }
+
+        // 游戏结束
+        function gameOver() {
+            addEvent('英雄被击败！游戏结束', 'negative');
+            document.querySelectorAll('.action-btn').forEach(btn => {
+                btn.disabled = true;
+            });
+        }
+
+        // 完成关卡
+        function completeLevel() {
+            addEvent(`恭喜！成功生存10天，完成第${gameState.level}关`, 'positive');
+            gameState.level++;
+            gameState.day = 1;
+            addEvent(`进入第${gameState.level}关，挑战升级`, 'neutral');
+        }
+
+        // 添加事件到日志
+        function addEvent(message, type) {
+            const eventElement = document.createElement('div');
+            eventElement.className = `event ${type}`;
+            eventElement.textContent = `[${gameState.phase.toUpperCase()}] ${message}`;
+            
+            const eventLog = document.getElementById('eventLog');
+            eventLog.appendChild(eventElement);
+            eventLog.scrollTop = eventLog.scrollHeight;
+        }
+
+        // 更新UI - Nopoly风格夜晚模式
+        function updateUI() {
+            // 更新资源显示
+            updateResourceBar();
+            
+            // 更新英雄状态
+            updateHeroPanel();
+            
+            // 更新技能栏
+            updateSkillPanel();
+            
+            // 更新夜晚进度
+            updateNightProgress();
+            
+            // 检查灵光状态
+            checkAuraStatus();
+        }
+
+        // 更新资源栏
+        function updateResourceBar() {
+            const auraElement = document.getElementById('auraValue');
+            const goldElement = document.getElementById('goldValue');
+            const woodElement = document.getElementById('woodValue');
+            
+            if (auraElement) auraElement.textContent = gameState.resources.aura;
+            if (goldElement) goldElement.textContent = gameState.resources.gold;
+            if (woodElement) woodElement.textContent = gameState.resources.wood;
+        }
+
+        // 更新英雄面板
+        function updateHeroPanel() {
+            const healthFill = document.getElementById('healthFill');
+            const shieldIndicator = document.getElementById('shieldIndicator');
+            const heroLevel = document.getElementById('heroLevel');
+            
+            if (healthFill) {
+                const healthPercent = (gameState.hero.health / 100) * 100;
+                healthFill.style.width = healthPercent + '%';
+                
+                // 低血量警告
+                if (gameState.hero.health <= 30) {
+                    healthFill.classList.add('low');
+                } else {
+                    healthFill.classList.remove('low');
+                }
+            }
+            
+            if (shieldIndicator) {
+                // 简单护盾显示（可根据实际护盾值扩展）
+                shieldIndicator.innerHTML = '';
+                const shieldCount = Math.floor(gameState.hero.health / 25);
+                for (let i = 0; i < shieldCount; i++) {
+                    const shieldIcon = document.createElement('span');
+                    shieldIcon.className = 'shield-icon';
+                    shieldIcon.textContent = '◇';
+                    shieldIndicator.appendChild(shieldIcon);
+                }
+            }
+            
+            if (heroLevel) {
+                heroLevel.textContent = gameState.hero.level;
+            }
+        }
+
+        // 更新技能面板
+        function updateSkillPanel() {
+            const skillButtons = document.querySelectorAll('.skill-btn');
+            skillButtons.forEach(btn => {
+                const skillKey = btn.getAttribute('data-skill');
+                if (skillKey) {
+                    const skill = heroSkills[skillKey];
+                    
+                    // 检查灵光是否足够
+                    if (gameState.resources.aura < skill.cost) {
+                        btn.disabled = true;
+                        btn.title = `需要${skill.cost}点灵光能量`;
+                    } else {
+                        btn.disabled = false;
+                        btn.title = skill.effect;
+                    }
+                    
+                    // 大招特殊效果
+                    if (skillKey === 'auraStrike') {
+                        if (gameState.resources.aura >= skill.cost) {
+                            btn.classList.add('ready');
+                        } else {
+                            btn.classList.remove('ready');
+                        }
+                    }
+                }
+            });
+        }
+
+        // 更新夜晚进度
+        function updateNightProgress() {
+            const waveBlocks = document.querySelectorAll('.wave-block');
+            const totalWaves = 6; // 假设6波敌人
+            const currentWave = Math.min(Math.floor(gameState.day / 2), totalWaves);
+            
+            waveBlocks.forEach((block, index) => {
+                if (index < currentWave) {
+                    block.classList.add('completed');
+                    block.classList.remove('active');
+                } else if (index === currentWave) {
+                    block.classList.add('active');
+                    block.classList.remove('completed');
+                } else {
+                    block.classList.remove('active', 'completed');
+                }
+            });
+        }
+
+        // 检查灵光状态
+        function checkAuraStatus() {
+            const auraElement = document.getElementById('auraValue');
+            if (auraElement) {
+                if (gameState.resources.aura < 20) {
+                    auraElement.classList.add('aura-low');
+                } else {
+                    auraElement.classList.remove('aura-low');
+                }
+            }
+        }
+
+        // 灵光消耗动画
+        function showAuraCostAnimation(skillCost, element) {
+            const costElement = document.createElement('div');
+            costElement.className = 'aura-cost';
+            costElement.textContent = `-${skillCost} ✦`;
+            
+            element.appendChild(costElement);
+            
+            setTimeout(() => {
+                costElement.remove();
+            }, 1000);
+        }
+
+        // 敌人预警系统
+        function showEnemyAlert(enemy) {
+            const mapElement = document.getElementById('gameMap');
+            const alertElement = document.createElement('div');
+            alertElement.className = 'enemy-alert';
+            
+            // 根据敌人位置显示预警
+            const enemyRect = enemy.element.getBoundingClientRect();
+            const mapRect = mapElement.getBoundingClientRect();
+            
+            const relativeX = enemyRect.left - mapRect.left;
+            const relativeY = enemyRect.top - mapRect.top;
+            
+            alertElement.style.left = relativeX + 'px';
+            alertElement.style.top = relativeY + 'px';
+            
+            mapElement.appendChild(alertElement);
+            
+            setTimeout(() => {
+                alertElement.remove();
+            }, 2000);
+        }
+
+        // 显示敌人方向箭头
+        function showEnemyDirection(enemy) {
+            const mapElement = document.getElementById('gameMap');
+            const arrowElement = document.createElement('div');
+            arrowElement.className = 'enemy-arrow';
+            
+            // 计算敌人相对于屏幕边缘的方向
+            const enemyRect = enemy.element.getBoundingClientRect();
+            const mapRect = mapElement.getBoundingClientRect();
+            
+            const centerX = mapRect.width / 2;
+            const centerY = mapRect.height / 2;
+            const enemyX = enemyRect.left - mapRect.left + enemyRect.width / 2;
+            const enemyY = enemyRect.top - mapRect.top + enemyRect.height / 2;
+            
+            // 确定箭头方向
+            let arrowSymbol = '→';
+            if (enemyX < centerX - 100) arrowSymbol = '←';
+            if (enemyY < centerY - 100) arrowSymbol = '↑';
+            if (enemyY > centerY + 100) arrowSymbol = '↓';
+            
+            arrowElement.textContent = arrowSymbol;
+            
+            // 放置在屏幕边缘
+            if (arrowSymbol === '→') {
+                arrowElement.style.right = '10px';
+                arrowElement.style.top = enemyY + 'px';
+            } else if (arrowSymbol === '←') {
+                arrowElement.style.left = '10px';
+                arrowElement.style.top = enemyY + 'px';
+            } else if (arrowSymbol === '↑') {
+                arrowElement.style.top = '10px';
+                arrowElement.style.left = enemyX + 'px';
+            } else {
+                arrowElement.style.bottom = '10px';
+                arrowElement.style.left = enemyX + 'px';
+            }
+            
+            mapElement.appendChild(arrowElement);
+            
+            setTimeout(() => {
+                arrowElement.remove();
+            }, 1000);
+        }
+
+        // 建筑受攻击效果
+        function showBuildingAttack(building) {
+            const buildingElement = document.querySelector(`.building.${building.type}`);
+            if (buildingElement) {
+                buildingElement.classList.add('building-attack');
+                
+                // 添加攻击图标
+                const attackIcon = document.createElement('div');
+                attackIcon.className = 'attack-icon';
+                attackIcon.textContent = '⚔';
+                buildingElement.appendChild(attackIcon);
+                
+                setTimeout(() => {
+                    buildingElement.classList.remove('building-attack');
+                    attackIcon.remove();
+                }, 1000);
+            }
+        }
+
+        // 初始化Nopoly UI系统
+        function initNopolyUI() {
+            // 创建资源栏
+            const gameContainer = document.querySelector('.game-container');
+            const resourceBar = document.createElement('div');
+            resourceBar.className = 'resource-bar';
+            resourceBar.innerHTML = `
+                <div class="resource-item">
+                    <span>💰</span>
+                    <span id="goldValue">${gameState.resources.gold}</span>
+                </div>
+                <div class="resource-item">
+                    <span>🌲</span>
+                    <span id="woodValue">${gameState.resources.wood}</span>
+                </div>
+                <div class="resource-item aura">
+                    <span class="aura-icon">✦</span>
+                    <span id="auraValue">${gameState.resources.aura}</span>
+                </div>
+                <div class="night-progress">
+                    <span>第${gameState.day}夜:</span>
+                    <div class="wave-indicator">
+                        <div class="wave-block"></div>
+                        <div class="wave-block"></div>
+                        <div class="wave-block"></div>
+                        <div class="wave-block"></div>
+                        <div class="wave-block"></div>
+                        <div class="wave-block"></div>
+                    </div>
+                </div>
+            `;
+            
+            // 插入到游戏容器顶部
+            const header = document.querySelector('.header');
+            gameContainer.insertBefore(resourceBar, header.nextSibling);
+            
+            // 创建英雄面板
+            const heroPanel = document.createElement('div');
+            heroPanel.className = 'hero-panel';
+            heroPanel.innerHTML = `
+                <div class="hero-header">
+                    <div class="hero-avatar">👑</div>
+                    <div class="hero-info">
+                        <div class="hero-name">孤王</div>
+                        <div class="health-bar">
+                            <div class="health-fill" id="healthFill"></div>
+                        </div>
+                        <div class="shield-indicator" id="shieldIndicator"></div>
+                    </div>
+                </div>
+                <div>等级: <span id="heroLevel">${gameState.hero.level}</span></div>
+            `;
+            
+            document.body.appendChild(heroPanel);
+            
+            // 创建技能面板
+            const skillPanel = document.createElement('div');
+            skillPanel.className = 'skill-panel';
+            skillPanel.innerHTML = `
+                <button class="skill-btn" data-skill="basicAttack" title="基础攻击">⚔</button>
+                <button class="skill-btn" data-skill="defensiveStance" title="防御姿态">🛡</button>
+                <button class="skill-btn ultimate" data-skill="auraStrike" title="灵光打击">✨</button>
+            `;
+            
+            document.body.appendChild(skillPanel);
+            
+            // 绑定技能事件
+            const skillButtons = skillPanel.querySelectorAll('.skill-btn');
+            skillButtons.forEach(btn => {
+                const skillKey = btn.getAttribute('data-skill');
+                btn.onclick = () => useSkill(skillKey);
+            });
+        }
+
+        // 重新开始游戏
+        function restartGame() {
+            if (confirm('确定要重新开始游戏吗？当前进度将丢失。')) {
+                gameState = {
+                    level: 1,
+                    day: 1,
+                    phase: 'day',
+                    resources: {
+                        aura: 100,
+                        gold: 50,
+                        wood: 25,
+                        population: 5
+                    },
+                    hero: {
+                        level: 1,
+                        health: 100,
+                        skills: ['basicAttack', 'defensiveStance'],
+                        experience: 0
+                    },
+                    decrees: [],
+                    buildings: [],
+                    enemies: [],
+                    events: []
+                };
+                
+                const eventLog = document.getElementById('eventLog');
+                eventLog.innerHTML = '<div class="event neutral">游戏重新开始！选择你的王令...</div>';
+                
+                initDecreeSelection();
+                generateNopolyMap();
+                updateUI();
+            }
+        }
+
+        // 初始化Nopoly UI系统
+        function initNopolyUI() {
+            // 创建资源栏
+            const gameContainer = document.querySelector('.game-container');
+            const resourceBar = document.createElement('div');
+            resourceBar.className = 'resource-bar';
+            resourceBar.innerHTML = `
+                <div class="resource-item">
+                    <span>💰</span>
+                    <span id="goldValue">${gameState.resources.gold}</span>
+                </div>
+                <div class="resource-item">
+                    <span>🌲</span>
+                    <span id="woodValue">${gameState.resources.wood}</span>
+                </div>
+                <div class="resource-item aura">
+                    <span class="aura-icon">✦</span>
+                    <span id="auraValue">${gameState.resources.aura}</span>
+                </div>
+                <div class="night-progress">
+                    <span>第${gameState.day}夜:</span>
+                    <div class="wave-indicator">
+                        <div class="wave-block"></div>
+                        <div class="wave-block"></div>
+                        <div class="wave-block"></div>
+                        <div class="wave-block"></div>
+                        <div class="wave-block"></div>
+                        <div class="wave-block"></div>
+                    </div>
+                </div>
+            `;
+            
+            // 插入到游戏容器顶部
+            const header = document.querySelector('.header');
+            gameContainer.insertBefore(resourceBar, header.nextSibling);
+            
+            // 创建英雄面板
+            const heroPanel = document.createElement('div');
+            heroPanel.className = 'hero-panel';
+            heroPanel.innerHTML = `
+                <div class="hero-header">
+                    <div class="hero-avatar">👑</div>
+                    <div class="hero-info">
+                        <div class="hero-name">孤王</div>
+                        <div class="health-bar">
+                            <div class="health-fill" id="healthFill"></div>
+                        </div>
+                        <div class="shield-indicator" id="shieldIndicator"></div>
+                    </div>
+                </div>
+                <div>等级: <span id="heroLevel">${gameState.hero.level}</span></div>
+            `;
+            
+            document.body.appendChild(heroPanel);
+            
+            // 创建技能面板
+            const skillPanel = document.createElement('div');
+            skillPanel.className = 'skill-panel';
+            skillPanel.innerHTML = `
+                <button class="skill-btn" data-skill="basicAttack" title="基础攻击">⚔</button>
+                <button class="skill-btn" data-skill="defensiveStance" title="防御姿态">🛡</button>
+                <button class="skill-btn ultimate" data-skill="auraStrike" title="灵光打击">✨</button>
+            `;
+            
+            document.body.appendChild(skillPanel);
+            
+            // 绑定技能事件
+            const skillButtons = skillPanel.querySelectorAll('.skill-btn');
+            skillButtons.forEach(btn => {
+                const skillKey = btn.getAttribute('data-skill');
+                btn.onclick = () => useSkill(skillKey);
+            });
+        }
+
+        // 初始化游戏
+        function initGame() {
+            initDecreeSelection();
+            generateNopolyMap();
+            initNopolyUI();
+            updateUI();
+            
+            // 设置昼夜视觉效果
+            document.body.classList.add('day-time');
+        }
+
+        // 页面加载时初始化
+        window.onload = initGame;
+
+        // 修复函数调用问题
+        function generateNopolyMap() {
+            const mapElement = document.getElementById('gameMap');
+            mapElement.innerHTML = '';
+            
+            const mapConfig = {
+                width: 12,
+                height: 8,
+                tileSize: 50
+            };
+
+            // 添加虚空效果
+            const voidEffect = document.createElement('div');
+            voidEffect.className = 'void-effect';
+            voidEffect.id = 'voidEffect';
+            mapElement.appendChild(voidEffect);
+
+            // 生成六边形网格
+            for (let y = 0; y < mapConfig.height; y++) {
+                for (let x = 0; x < mapConfig.width; x++) {
+                    const tile = document.createElement('div');
+                    tile.className = 'tile';
+                    
+                    // 随机地块类型
+                    const types = ['grass', 'forest', 'water', 'mountain'];
+                    const type = types[Math.floor(Math.random() * types.length)];
+                    tile.classList.add(type);
+                    
+                    // 六边形布局计算
+                    const hexX = x * mapConfig.tileSize * 0.866; // cos(30°)
+                    const hexY = y * mapConfig.tileSize + (x % 2) * mapConfig.tileSize / 2;
+                    
+                    tile.style.position = 'absolute';
+                    tile.style.left = hexX + 'px';
+                    tile.style.top = hexY + 'px';
+                    tile.style.width = mapConfig.tileSize + 'px';
+                    tile.style.height = mapConfig.tileSize + 'px';
+                    tile.style.cursor = 'pointer';
+                    tile.style.zIndex = '5';
+                    
+                    tile.addEventListener('click', () => onTileClick(x, y, type));
+                    mapElement.appendChild(tile);
+                }
+            }
+
+            // 放置英雄
+            placeHero();
+        }
+
+        // 放置英雄
+        function placeHero() {
+            const mapElement = document.getElementById('gameMap');
+            const hero = document.createElement('div');
+            hero.className = 'hero';
+            hero.innerHTML = '👑';
+            hero.style.left = '300px';
+            hero.style.top = '200px';
+            hero.onclick = () => showHeroInfo();
+            mapElement.appendChild(hero);
+        }
+
+        // 地块点击事件
+        function onTileClick(x, y, type) {
+            if (gameState.decrees.length < 3) {
+                addEvent('请先选择3个王令开始游戏', 'negative');
+                return;
+            }
+            
+            if (gameState.phase === 'day') {
+                addEvent(`选择了${getTileName(type)}地块 (${x}, ${y}) - 可以在此建造建筑`, 'neutral');
+            } else {
+                addEvent(`夜晚无法建造，请等待天亮`, 'negative');
+            }
+        }
+
+        // 获取地块名称
+        function getTileName(type) {
+            const names = {
+                'grass': '草地',
+                'forest': '森林', 
+                'water': '水域',
+                'mountain': '山脉'
+            };
+            return names[type] || '未知地块';
+        }
+
+        // 采集灵光能量
+        function gatherAura() {
+            if (gameState.decrees.length < 3) {
+                addEvent('请先选择3个王令开始游戏', 'negative');
+                return;
+            }
+            
+            if (gameState.phase === 'day') {
+                const gathered = Math.floor(Math.random() * 15) + 10;
+                gameState.resources.aura += gathered;
+                addEvent(`采集到 ${gathered} 点灵光能量`, 'positive');
+                updateUI();
+            } else {
+                addEvent('只能在白天采集资源', 'negative');
+            }
+        }
+
+        // 进入下一阶段（白天/黑夜切换）
+        function nextPhase() {
+            if (gameState.decrees.length < 3) {
+                addEvent('请先选择3个王令开始游戏', 'negative');
+                return;
+            }
+            
+            if (gameState.phase === 'day') {
+                // 切换到夜晚
+                gameState.phase = 'night';
+                document.getElementById('timeOfDay').textContent = '夜晚';
+                document.body.classList.add('night-time');
+                document.body.classList.remove('day-time');
+                
+                addEvent('夜幕降临，虚空生物开始活动...', 'negative');
+                startNightPhase();
+            } else {
+                // 切换到白天
+                gameState.phase = 'day';
+                gameState.day++;
+                document.getElementById('timeOfDay').textContent = '白天';
+                document.getElementById('day').textContent = gameState.day;
+                document.body.classList.add('day-time');
+                document.body.classList.remove('night-time');
+                
+                // 启用建造按钮
+                document.querySelectorAll('.action-btn').forEach(btn => {
+                    btn.disabled = false;
+                });
+                
+                // 清除夜晚的敌人
+                gameState.enemies.forEach(enemy => enemy.element.remove());
+                gameState.enemies = [];
+                
+                addEvent(`第${gameState.day}天开始，继续建设你的王朝`, 'positive');
+                
+                // 检查是否完成关卡
+                if (gameState.day > 10) {
+                    completeLevel();
+                }
+            }
+            updateUI();
+        }
+    </script>
+</body>
+</html>
